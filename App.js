@@ -3,6 +3,9 @@ import { StyleSheet, Text, View } from "react-native";
 import MetaAI from "./src/assets/MetaAI";
 import { Provider } from "react-redux";
 import store from "./src/redux/store";
+import "react-native-get-random-values";
+import "react-native-url-polyfill/auto";
+
 
 export default function App() {
   return (

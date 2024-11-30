@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 
-import React from "react";
+import React, { useState } from "react";
 import Svg, { Rect } from "react-native-svg";
 import { RFValue } from "react-native-responsive-fontsize";
 import LOGO from "../assets/logo_s.jpeg";
@@ -15,10 +15,16 @@ import CustomText from "./CustomText";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import { useDispatch } from "react-redux";
-import { clearStorage } from "../redux/reducers/chatReducer";
+import { clearCurrentChat, clearStorage } from "../redux/reducers/chatReducer";
+import SideDrawer from "./SideDrawer";
 
-const CustomHeader = () => {
-  const dispatch=useDispatch();
+const CustomHeader = ({ chatid, setCurrentChatid, chats }) => {
+  const dispatch = useDispatch();
+  const onClearChat = async () => {
+    await dispatch(clearCurrentChat({ chatid }));
+  };
+  const [isVisible, setIsVisible] = useState(false);
+
   return (
     <View style={styles.container}>
       <SafeAreaView>
@@ -50,7 +56,12 @@ const CustomHeader = () => {
                 fill="white"
               />
             </Svg> */}
-            <Feather name="menu" size={24} color="white" />
+            <Feather
+              name="menu"
+              size={24}
+              color="white"
+              onPress={() => setIsVisible(true)}
+            />
           </TouchableOpacity>
           <View style={styles.Logo}>
             <Image source={LOGO} style={styles.image} />
@@ -65,13 +76,23 @@ const CustomHeader = () => {
             </View>
           </View>
 
-          <TouchableOpacity onPress={()=>dispatch(clearStorage())}>
+          <TouchableOpacity onPress={onClearChat}>
             <CustomText size={14} fontWeight="500">
               Clear
             </CustomText>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {isVisible && (
+        <SideDrawer
+          isVisible={isVisible}
+          setCurrentChatid={(id) => setCurrentChatid(id)}
+          chats={chats}
+          currentChatId={chatid}
+          onPressHide={() => setIsVisible(false)}
+        />
+      )}
     </View>
   );
 };

@@ -12,7 +12,7 @@ const CustomText = ({
   ...props
 }) => {
   return (
-    <Text style={{ fontSize: size, color, opacity, fontWeight }} {...props}>
+    <Text style={{ fontSize: size, color, opacity, fontWeight,...style }} {...props}>
       {children}
     </Text>
   );

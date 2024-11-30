@@ -1,12 +1,13 @@
 import { Image, StyleSheet, Text, View } from "react-native";
 import React from "react";
-import { RFValue } from "react-native-responsive-fontsize";
+import { RFPercentage, RFValue } from "react-native-responsive-fontsize";
 import dayjs from "dayjs";
 import TickIcon from "../assets/tick.png";
 import MarkdownDisplay from "react-native-markdown-display";
 import LoadingDots from "./LoadingDots";
 
 const MessageBubble = ({ message }) => {
+  // console.log("Bubble", message);
   const role = message.role == "user";
   const isMessageRead = message?.isMessageRead;
   return (
@@ -29,50 +30,64 @@ const MessageBubble = ({ message }) => {
         ></View>
       )}
 
-      {message?.isLoading?(
-        <LoadingDots/>
-      ):(
-        <View></View>
-      )}
+      {message?.isLoading ? (
+        <LoadingDots />
+      ) : message?.imageUri ? (
+        <Image
+          source={{ uri: message?.imageUri }}
+          // source={message?.imageUri}
+          style={{
+            height: RFPercentage(20),
+            width: RFPercentage(35),
+            resizeMode: "cover",
+            aspectRatio: 4 / 4,
+            borderRadius: 20,
+            left: 7,
+          }}
+        />
+      ) : null}
 
-      <MarkdownDisplay
-        style={{
-          body: {
-            ...styles.messageText,
-            left: role ? 10 : 0,
-            marginVertical: 0,
-            paddingVertical: 0,
-          },
-          link: {
-            color: "lightblue",
-          },
-          blockquote: {
-            color: "white",
-            backgroundColor: "#1d211e",
-            borderRadius: 4,
-            borderLeftWidth: 0,
-          },
-          table: {
-            borderColor: "white",
-          },
-          code_inline: {
-            backgroundColor: "#1d211e",
-            color: "white",
-            borderRadius: 5,
-            fence: {
+      {message.content && (
+        <MarkdownDisplay
+          style={{
+            body: {
+              ...styles.messageText,
+              left: role ? 10 : 0,
+              marginVertical: 0,
+              paddingVertical: 0,
+            },
+            link: {
+              color: "lightblue",
+            },
+            blockquote: {
+              color: "white",
+              backgroundColor: "#1d211e",
+              borderRadius: 4,
+              borderLeftWidth: 0,
+            },
+            table: {
+              borderColor: "white",
+            },
+            code_inline: {
               backgroundColor: "#1d211e",
               color: "white",
               borderRadius: 5,
-              borderWidth: 0,
+              fence: {
+                backgroundColor: "#1d211e",
+                color: "white",
+                borderRadius: 5,
+                borderWidth: 0,
+              },
+              tr: {
+                borderColor: "white",
+              },
             },
-            tr: {
-              borderColor: "white",
-            },
-          },
-        }}
-      >
-        {message.content}
-      </MarkdownDisplay>
+          }}
+        >
+          {message.content}
+        </MarkdownDisplay>
+      )}
+
       {role && (
         <View
           style={{
@@ -90,7 +105,7 @@ const MessageBubble = ({ message }) => {
           <View>
             <Image
               source={TickIcon}
-              tintColor={role ? "#53a6fd" : "#8aa69b"}
+              tintColor={isMessageRead ? "#53a6fd" : "#8aa69b"}
               style={{ width: 15, height: 15 }}
             />
           </View>
@@ -120,6 +135,9 @@ const styles = StyleSheet.create({
     fontSize: RFValue(11.4),
     marginBottom: 10,
     marginRight: 10,
+    maxWidth: "60%",
+    minWidth: "10%",
+    paddingRight: 10,
   },
 
   leftMessageArrow: {

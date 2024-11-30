@@ -14,10 +14,19 @@ import useKeyboardHeightOffset from "../helpers/useKeyboardHeightOffset";
 import { useDispatch, useSelector } from "react-redux";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import uuid from "react-native-uuid";
-import { addMessage, createNewChat } from "../redux/reducers/chatReducer";
-
+import EventSource from "react-native-sse";
+import * as fs from 'expo-file-system';
+import {
+  addMessage,
+  createNewChat,
+  markMessageAsRead,
+  updateAssistantMessage,
+  updateChatSummary,
+} from "../redux/reducers/chatReducer";
+import { Buffer } from "buffer";
 const height = Dimensions.get("window").height;
 const width = Dimensions.get("window").width;
+
 const SendButton = ({
   isTyping,
   setisTyping,
@@ -32,7 +41,7 @@ const SendButton = ({
   const [message, setMessage] = useState("");
   const keyboardOffsetHeight = useKeyboardHeightOffset();
   const currChatId = useSelector((state) => state.chat.currentChatId);
-
+  const TextInputRef = useRef(null);
   const animationValue = useRef(new Animated.Value(0)).current;
   const chats = useSelector((state) => state.chat.chats);
 
@@ -45,23 +54,220 @@ const SendButton = ({
     setHeightOfMessageBox(e.nativeEvent.contentSize.height);
   };
 
+  const checkImage = async (message) => {
+    const imageRegex = /\b(generate\s*image|imagine|draw|picture)\b/i;
+    if (imageRegex.test(message)) {
+      // console.log("Returning True");
+      return true;
+    }
+    // console.log("Returning False");
+    return false;
+  };
+
+  const fetchTextResponse = async (prompt, currChatId) => {
+    let id = uuid.v4();
+    await dispatch(
+      addMessage({
+        chatid: currChatId,
+        message: {
+          content: "",
+          time: prompt.time,
+          role: "assistant",
+          id: id,
+          isLoading: true,
+        },
+      })
+    );
+
+    // console.log([...messages, prompt]);
+
+    // const Event = new EventSource(process.env.HUGGING_FACE_URL, {
+    //   method: "POST",
+    //   headers: {
+    //     Authorization: `Bearer ${process.env.HUGGING_FACE_API}`,
+    //     "Content-Type": "application/json",
+    //   },
+    //   pollingInterval: 0,
+    //   body: JSON.stringify({
+    //     model: "meta-llama/Meta-Llama-3-8B-Instruct",
+    //     messages: [
+    //       {
+    //         role: "user",
+    //         content: prompt.content,
+    //       },
+    //     ],
+    //     max_token: 500,
+    //     stream: true,
+    //   }),
+    // });
+
+    // let contents = "";
+    // let responseComplete = false;
+
+    // Event.addEventListener("message", (event) => {
+    //   if (event.data !== "[DONE]") {
+    //     const parsedData = JSON.parse(event.data);
+    //     if (parsedData.choices && parsedData.choices.length > 0) {
+    //       const delta = parsedData.choices[0].delta.content;
+    //       if (delta) {
+    //         contents += delta;
+    //         dispatch(
+    //           updateAssistantMessage({
+    //             message: {
+    //               content: contents,
+    //               time: new Date().toString(),
+    //               role: "assistant",
+    //               id: id,
+    //             },
+    //             chatid: currChatId,
+    //             messageid: id,
+    //           })
+    //         );
+    //       }
+    //     }
+    //   } else {
+    //     responseComplete = true;
+    //     Event.close();
+    //   }
+    // });
+
+    // Event.addEventListener("error", (error) => {
+    //   console.error("EventSource error:", error);
+    //   dispatch(
+    //     updateAssistantMessage({
+    //       message: {
+    //         contents: "Oops something went wrong",
+    //         time: new Date().toString(),
+    //         role: "assistant",
+    //         id: id,
+    //       },
+    //       chatid: currChatId,
+    //       messageid: id,
+    //     })
+    //   );
+    //   Event.close();
+    // });
+
+    // Event.addEventListener("close", () => {
+    //   if (!responseComplete) {
+    //     Event.close();
+    //   }
+    // });
+    // return () => {
+    //   Event.removeAllEventListeners();
+    //   Event.close();
+    // };
+  };
+
+  const fetchImageResponse = async (prompt, currChatId) => {
+    let fileUri = "";
+    let id = uuid.v4();
+    await dispatch(
+      addMessage({
+        chatid: currChatId,
+        message: {
+          content: "",
+          time: prompt.time,
+          role: "assistant",
+          id: id,
+          isLoading: true,
+        },
+      })
+    );
+
+    try {
+      const form = new FormData();
+      form.append("prompt", prompt.content);
+
+      const response = await fetch(process.env.TEXT_TO_IMAGE_URL, {
+        method: "POST",
+        headers: {
+          "x-api-key": `${process.env.TEXT_TO_IMAGE_API}`, // Replace with your API key
+        },
+        body: form,
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        fileUri = `${fs.cacheDirectory}generated-image.png`;
+
+        // Save the image to cache directory
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Data = reader.result.split(',')[1]; // Extract base64 data
+          await fs.writeAsStringAsync(fileUri, base64Data, {
+            encoding: fs.EncodingType.Base64,
+          });
+          // setImageUri(fileUri); // Set image URI
+        };
+        reader.readAsDataURL(blob); // Convert blob to base64
+      }
+
+      await dispatch(
+        updateAssistantMessage({
+          chatid: currChatId,
+          messageid: id,
+          message: {
+            // content: fileUri,
+            imageUri: fileUri,
+            time: new Date().toString(),
+            role: "assistant",
+            id: id,
+          },
+        })
+      );
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const addMessages = async (Id) => {
     let selectedId = Id ? Id : currChatId;
-    console.log(selectedId);
+    if (length == 0 && message.trim().length != 0) {
+      // console.log("Here");
+      await dispatch(
+        updateChatSummary({
+          chatid: selectedId,
+          summary: message?.trim().slice(0, 40),
+        })
+      );
+    }
+    let uuid4 = uuid.v4();
+
     await dispatch(
       addMessage({
         chatid: selectedId,
         message: {
-          content: "Hi I Am Assistant",
-          // content: message,
+          content: message,
           time: new Date().toString(),
-          role: "assistant",
-          // role: "user",
-          id: uuid.v4(),
+          role: "user",
+          id: uuid4,
           isMessageRead: false,
-          isLoading:true,
         },
       })
+    );
+    setMessage("");
+    TextInputRef.current.blur();
+    setisTyping(false);
+
+    let prompt = {
+      content: message,
+      time: new Date().toString(),
+      role: "user",
+      id: uuid4,
+      isMessageRead: false,
+    };
+
+    // console.log(!checkImage(message));
+    if (!checkImage(message)) {
+      // console.log("Text1",message);
+      fetchTextResponse(prompt, selectedId);
+    } else {
+      // console.log("Text",message);
+      fetchImageResponse(prompt, selectedId);
+    }
+
+    await dispatch(
+      markMessageAsRead({ chatId: selectedId, messageId: message.id })
     );
   };
 
@@ -111,6 +317,7 @@ const SendButton = ({
             onChangeText={(text) => handleTextChange(text)}
             keyboardAppearance="dark"
             keyboardType="default"
+            ref={TextInputRef}
             onContentSizeChange={(e) => handleContentSizeChange(e)}
           />
         </View>
@@ -134,11 +341,10 @@ const SendButton = ({
                     })
                   );
                   addMessages(newId);
-                  setMessage("");
                   return;
                 }
-
-                addMessages();
+                addMessages(currChatId);
+                return;
               }}
             >
               <Ionicons name="send" size={20} color="#000" />
