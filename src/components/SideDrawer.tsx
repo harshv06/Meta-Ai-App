@@ -18,6 +18,9 @@ import {
   createNewChat,
   clearAllChats,
   deleteChat,
+  saveNewChat,
+  deleteChatFromStorage,
+  clearStorage,
 } from "../redux/reducers/chatReducer";
 
 import uuid from "react-native-uuid";

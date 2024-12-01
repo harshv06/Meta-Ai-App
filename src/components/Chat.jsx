@@ -8,7 +8,7 @@ import EmptyComponent from "./EmptyComponent";
 
 const windowHeight = Dimensions.get("window").height;
 const Chat = ({ isTyping, message, heightOfMessageBox }) => {
-  // console.log("ChatScreen",message)
+  console.log("ChatScreen",message)
   const keyboardHeight = useKeyboardHeightOffset();
   // console.log(message);
   const renderMessageBubble = ({ item }) => <MessageBubble message={item} />;
