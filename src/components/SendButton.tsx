@@ -15,15 +15,19 @@ import { useDispatch, useSelector } from "react-redux";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import uuid from "react-native-uuid";
 import EventSource from "react-native-sse";
-import * as fs from 'expo-file-system';
+import * as fs from "expo-file-system";
 import {
   addMessage,
+  AssistantMessage,
+  changeMessageStatus,
   createNewChat,
   markMessageAsRead,
+  saveMessages,
+  saveNewChat,
+  saveUpdatedChatSummary,
   updateAssistantMessage,
   updateChatSummary,
 } from "../redux/reducers/chatReducer";
-import { Buffer } from "buffer";
 const height = Dimensions.get("window").height;
 const width = Dimensions.get("window").width;
 
@@ -78,85 +82,84 @@ const SendButton = ({
         },
       })
     );
+    console.log("reaching here");
+    const Event = new EventSource(process.env.HUGGING_FACE_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.HUGGING_FACE_API}`,
+        "Content-Type": "application/json",
+      },
+      pollingInterval: 0,
+      body: JSON.stringify({
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        messages: [
+          {
+            role: "user",
+            content: prompt.content,
+          },
+        ],
+        max_token: 500,
+        stream: true,
+      }),
+    });
 
-    // console.log([...messages, prompt]);
+    let contents = "";
+    let responseComplete = false;
 
-    // const Event = new EventSource(process.env.HUGGING_FACE_URL, {
-    //   method: "POST",
-    //   headers: {
-    //     Authorization: `Bearer ${process.env.HUGGING_FACE_API}`,
-    //     "Content-Type": "application/json",
-    //   },
-    //   pollingInterval: 0,
-    //   body: JSON.stringify({
-    //     model: "meta-llama/Meta-Llama-3-8B-Instruct",
-    //     messages: [
-    //       {
-    //         role: "user",
-    //         content: prompt.content,
-    //       },
-    //     ],
-    //     max_token: 500,
-    //     stream: true,
-    //   }),
-    // });
+    Event.addEventListener("message", (event) => {
+      if (event.data !== "[DONE]") {
+        console.log("Getting here");
+        const parsedData = JSON.parse(event.data);
+        if (parsedData.choices && parsedData.choices.length > 0) {
+          const delta = parsedData.choices[0].delta.content;
+          if (delta) {
+            contents += delta;
+            dispatch(
+              updateAssistantMessage({
+                message: {
+                  content: contents,
+                  time: new Date().toString(),
+                  role: "assistant",
+                  id: id,
+                },
+                chatid: currChatId,
+                messageid: id,
+              })
+            );
+          }
+        }
+      } else {
+        responseComplete = true;
+        Event.close();
+      }
+    });
 
-    // let contents = "";
-    // let responseComplete = false;
+    Event.addEventListener("error", (error) => {
+      console.error("EventSource error:", error);
+      dispatch(
+        updateAssistantMessage({
+          message: {
+            contents: "Oops something went wrong",
+            time: new Date().toString(),
+            role: "assistant",
+            id: id,
+          },
+          chatid: currChatId,
+          messageid: id,
+        })
+      );
+      Event.close();
+    });
 
-    // Event.addEventListener("message", (event) => {
-    //   if (event.data !== "[DONE]") {
-    //     const parsedData = JSON.parse(event.data);
-    //     if (parsedData.choices && parsedData.choices.length > 0) {
-    //       const delta = parsedData.choices[0].delta.content;
-    //       if (delta) {
-    //         contents += delta;
-    //         dispatch(
-    //           updateAssistantMessage({
-    //             message: {
-    //               content: contents,
-    //               time: new Date().toString(),
-    //               role: "assistant",
-    //               id: id,
-    //             },
-    //             chatid: currChatId,
-    //             messageid: id,
-    //           })
-    //         );
-    //       }
-    //     }
-    //   } else {
-    //     responseComplete = true;
-    //     Event.close();
-    //   }
-    // });
-
-    // Event.addEventListener("error", (error) => {
-    //   console.error("EventSource error:", error);
-    //   dispatch(
-    //     updateAssistantMessage({
-    //       message: {
-    //         contents: "Oops something went wrong",
-    //         time: new Date().toString(),
-    //         role: "assistant",
-    //         id: id,
-    //       },
-    //       chatid: currChatId,
-    //       messageid: id,
-    //     })
-    //   );
-    //   Event.close();
-    // });
-
-    // Event.addEventListener("close", () => {
-    //   if (!responseComplete) {
-    //     Event.close();
-    //   }
-    // });
-    // return () => {
-    //   Event.removeAllEventListeners();
-    //   Event.close();
-    // };
+    Event.addEventListener("close", () => {
+      if (!responseComplete) {
+        Event.close();
+      }
+    });
+    return () => {
+      Event.removeAllEventListeners();
+      Event.close();
+    };
   };
 
   const fetchImageResponse = async (prompt, currChatId) => {
@@ -193,7 +196,7 @@ const SendButton = ({
         // Save the image to cache directory
         const reader = new FileReader();
         reader.onloadend = async () => {
-          const base64Data = reader.result.split(',')[1]; // Extract base64 data
+          const base64Data = reader.result.split(",")[1]; // Extract base64 data
           await fs.writeAsStringAsync(fileUri, base64Data, {
             encoding: fs.EncodingType.Base64,
           });
@@ -221,16 +224,18 @@ const SendButton = ({
   };
 
   const addMessages = async (Id) => {
+    console.log("Add Message", message);
     let selectedId = Id ? Id : currChatId;
     if (length == 0 && message.trim().length != 0) {
-      // console.log("Here");
       await dispatch(
         updateChatSummary({
           chatid: selectedId,
           summary: message?.trim().slice(0, 40),
+          // message:message
         })
       );
     }
+
     let uuid4 = uuid.v4();
 
     await dispatch(
@@ -245,6 +250,7 @@ const SendButton = ({
         },
       })
     );
+    console.log("Message Saved");
     setMessage("");
     TextInputRef.current.blur();
     setisTyping(false);
@@ -257,17 +263,17 @@ const SendButton = ({
       isMessageRead: false,
     };
 
-    // console.log(!checkImage(message));
+    console.log(checkImage(message));
     if (!checkImage(message)) {
       // console.log("Text1",message);
-      fetchTextResponse(prompt, selectedId);
-    } else {
-      // console.log("Text",message);
       fetchImageResponse(prompt, selectedId);
+    } else {
+      console.log("Text", message);
+      fetchTextResponse(prompt, selectedId);
     }
 
     await dispatch(
-      markMessageAsRead({ chatId: selectedId, messageId: message.id })
+      markMessageAsRead({ chatId: selectedId, messageId: uuid4 })
     );
   };
 
@@ -333,14 +339,25 @@ const SendButton = ({
                 if (chatIndex === -1) {
                   let newId = uuid.v4();
                   setCurrentChatId(newId);
+                  // await dispatch(
+                  //   createNewChat({
+                  //     storedMessage: [],
+                  //     chatid: newId,
+                  //     summary: "New Chat !!",
+                  //   })
+                  // );
+
                   await dispatch(
                     createNewChat({
                       storedMessage: [],
                       chatid: newId,
-                      summary: "New Chat !!",
+                      summary: "New Chat",
                     })
                   );
+
+                  console.log("In send button");
                   addMessages(newId);
+                  // dispatch(saveMessages([], newId));
                   return;
                 }
                 addMessages(currChatId);

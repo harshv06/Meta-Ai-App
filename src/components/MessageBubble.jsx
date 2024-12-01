@@ -7,7 +7,7 @@ import MarkdownDisplay from "react-native-markdown-display";
 import LoadingDots from "./LoadingDots";
 
 const MessageBubble = ({ message }) => {
-  // console.log("Bubble", message);
+  console.log("Bubble", message);
   const role = message.role == "user";
   const isMessageRead = message?.isMessageRead;
   return (
@@ -135,8 +135,8 @@ const styles = StyleSheet.create({
     fontSize: RFValue(11.4),
     marginBottom: 10,
     marginRight: 10,
-    maxWidth: "60%",
-    minWidth: "10%",
+    maxWidth: "70%",
+    minWidth: "30%",
     paddingRight: 10,
   },
 
