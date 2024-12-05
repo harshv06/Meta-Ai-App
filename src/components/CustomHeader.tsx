@@ -1,5 +1,7 @@
 import {
+  Dimensions,
   Image,
+  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -17,6 +19,8 @@ import Feather from "@expo/vector-icons/Feather";
 import { useDispatch } from "react-redux";
 import { clearCurrentChat, clearStorage } from "../redux/reducers/chatReducer";
 import SideDrawer from "./SideDrawer";
+
+const height = Dimensions.get("window").height;
 
 const CustomHeader = ({ chatid, setCurrentChatid, chats }) => {
   const dispatch = useDispatch();
@@ -101,6 +105,7 @@ export default CustomHeader;
 
 const styles = StyleSheet.create({
   container: {
+    // marginTop: 10,
     backgroundColor: "rgba(20,25,46,1)",
     padding: 15,
     borderBottomWidth: 0.18,
@@ -114,7 +119,7 @@ const styles = StyleSheet.create({
   },
 
   subContainer: {
-    marginTop: 10,
+    marginTop: Platform.OS === "ios" ? 10 : height * 0.03,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",

@@ -7,7 +7,8 @@ import MarkdownDisplay from "react-native-markdown-display";
 import LoadingDots from "./LoadingDots";
 
 const MessageBubble = ({ message }) => {
-  console.log("Bubble", message);
+  //("Bubble", message);
+  console.log("Message",message);
   const role = message.role == "user";
   const isMessageRead = message?.isMessageRead;
   return (

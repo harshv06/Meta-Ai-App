@@ -58,13 +58,13 @@ const SendButton = ({
     setHeightOfMessageBox(e.nativeEvent.contentSize.height);
   };
 
-  const checkImage = async (message) => {
+  const checkImage = (message) => {
     const imageRegex = /\b(generate\s*image|imagine|draw|picture)\b/i;
     if (imageRegex.test(message)) {
-      // console.log("Returning True");
+      // //("Returning True");
       return true;
     }
-    // console.log("Returning False");
+    // //("Returning False");
     return false;
   };
 
@@ -82,7 +82,7 @@ const SendButton = ({
         },
       })
     );
-    console.log("reaching here");
+    //("reaching here");
     const Event = new EventSource(process.env.HUGGING_FACE_URL, {
       method: "POST",
       headers: {
@@ -108,7 +108,7 @@ const SendButton = ({
 
     Event.addEventListener("message", (event) => {
       if (event.data !== "[DONE]") {
-        console.log("Getting here");
+        //("Getting here");
         const parsedData = JSON.parse(event.data);
         if (parsedData.choices && parsedData.choices.length > 0) {
           const delta = parsedData.choices[0].delta.content;
@@ -191,7 +191,7 @@ const SendButton = ({
       });
       if (response.ok) {
         const blob = await response.blob();
-        fileUri = `${fs.cacheDirectory}generated-image.png`;
+        fileUri = `${fs.cacheDirectory}generated-image-${Date.now().toString()}.png`;
 
         // Save the image to cache directory
         const reader = new FileReader();
@@ -204,7 +204,7 @@ const SendButton = ({
         };
         reader.readAsDataURL(blob); // Convert blob to base64
       }
-
+      console.log("File Uri",fileUri);
       await dispatch(
         updateAssistantMessage({
           chatid: currChatId,
@@ -214,17 +214,17 @@ const SendButton = ({
             imageUri: fileUri,
             time: new Date().toString(),
             role: "assistant",
-            id: id,
+            id: id
           },
         })
       );
     } catch (err) {
-      console.log(err);
+      //(err);
     }
   };
 
   const addMessages = async (Id) => {
-    console.log("Add Message", message);
+    //("Add Message", message);
     let selectedId = Id ? Id : currChatId;
     if (length == 0 && message.trim().length != 0) {
       await dispatch(
@@ -250,7 +250,7 @@ const SendButton = ({
         },
       })
     );
-    console.log("Message Saved");
+    //("Message Saved");
     setMessage("");
     TextInputRef.current.blur();
     setisTyping(false);
@@ -263,13 +263,13 @@ const SendButton = ({
       isMessageRead: false,
     };
 
-    console.log(checkImage(message));
+    //(checkImage(message));
     if (!checkImage(message)) {
-      // console.log("Text1",message);
-      fetchImageResponse(prompt, selectedId);
-    } else {
-      console.log("Text", message);
+      // //("Text1",message);
       fetchTextResponse(prompt, selectedId);
+    } else {
+      // //("Text", message);
+      fetchImageResponse(prompt, selectedId);
     }
 
     await dispatch(
@@ -355,7 +355,7 @@ const SendButton = ({
                     })
                   );
 
-                  console.log("In send button");
+                  //("In send button");
                   addMessages(newId);
                   // dispatch(saveMessages([], newId));
                   return;
