@@ -17,8 +17,9 @@ const MetaAI = () => {
   // useEffect(() => {
   //   dispatch(selectChats());
   // }, [dispatch]);
-  // console.log("Main Console", chats, " ", chatId);
-  // console.log("Key", chats, " ", chatId);
+  // //("Main Console", chats, " ", chatId);
+  // //("Key", chats, " ", chatId);
+  console.log(chats, " ", chatId);
   const [isTyping, setisTyping] = useState(false);
   const [heightOfMessageBox, setHeightOfMessageBox] = useState(0);
 

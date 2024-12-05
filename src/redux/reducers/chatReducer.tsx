@@ -26,7 +26,7 @@ export const chatSlice = createSlice({
 
     addMessage: (state, action) => {
       const { message, chatid } = action.payload;
-      console.log("Add Message: ", message, chatid);
+      //("Add Message: ", message, chatid);
       const chat = state.chats.findIndex((chat) => chat.id === chatid);
       if (chat !== -1) {
         state.chats[chat].message.push(message);
@@ -39,7 +39,7 @@ export const chatSlice = createSlice({
     },
 
     loadChats: (state, action) => {
-      // console.log("Load Chats: ", action.payload.chats);
+      // //("Load Chats: ", action.payload.chats);
       state.chats = action.payload.chats || {};
       state.currentChatId = action.payload.latestChatId || "";
     },
@@ -84,7 +84,7 @@ export const chatSlice = createSlice({
       if (chatIndex !== -1) {
         state.chats[chatIndex].summary = summary;
         if (message) {
-          console.log("Reducer",message);
+          //("Reducer",message);
           state.chats[chatIndex].message = message;
         }
       }
@@ -117,6 +117,8 @@ export const chatSlice = createSlice({
             isMessageRead: true,
           };
         }
+        console.log(messageid,messageIndex);
+        console.log(state.chats[chatIndex].message[messageIndex]);
       }
     },
   },
@@ -141,7 +143,7 @@ export const selectChats = () => async (dispatch) => {
   const chatId = await loadFromSecureStore("latestChatId");
   if (storedMessage && chatId) {
     // If messages and chatId are found, load them into the Redux store
-    // console.log("From Reducer: ", JSON.parse(storedMessage), chatId);
+    // //("From Reducer: ", JSON.parse(storedMessage), chatId);
     dispatch(loadChats({ chats: JSON.parse(storedMessage), chatId }));
   } else {
     // If no data, initialize with empty chats and chatId
@@ -155,18 +157,18 @@ export const saveMessages =
     const state = getState();
     let chats = [...state.chat.chats];
     const chatIndex = chats.findIndex((chat) => chat.id === chatId);
-    // console.log("Save Message1: ", chatId, message);
+    // //("Save Message1: ", chatId, message);
     if (chatIndex !== -1) {
       chats[chatIndex] = {
         ...chats[chatIndex],
         message: [...chats[chatIndex].message, message],
       };
-      // console.log("Save Message2: ", chats);
+      // //("Save Message2: ", chats);
       await saveToSecureStore("chatMessages", JSON.stringify(chats));
 
       dispatch(addMessage({ message: message, chatid: chatId }));
     }
-    // console.log("Save Message3: ", chats);
+    // //("Save Message3: ", chats);
   };
 
 export const clearStorage = () => async (dispatch) => {
@@ -185,7 +187,7 @@ export const saveNewChat =
       message: storedMessage ? storedMessage : [],
       summary: summary,
     });
-    console.log("Inside saveNewChat:", chats);
+    //("Inside saveNewChat:", chats);
     await saveToSecureStore("chatMessages", JSON.stringify(chats));
     await saveToSecureStore("latestChatId", chatid);
     // await saveToSecureStore("chatid", chatid);
@@ -196,11 +198,11 @@ export const saveUpdatedChatSummary =
   ({ chatid, summary, message }) =>
   async (dispatch, getState) => {
     const state = getState();
-    // console.log("save Updated Summary: ", summary, chatid);
+    // //("save Updated Summary: ", summary, chatid);
     let chats = [...state.chat.chats];
     const chatIndex = chats.findIndex((chat) => chat.id === chatid);
     if (chatIndex !== -1) {
-      // console.log("Here 3 ", chats[chatIndex].summary, summary);
+      // //("Here 3 ", chats[chatIndex].summary, summary);
       chats[chatIndex] = {
         ...chats[chatIndex],
         summary: summary,
@@ -208,7 +210,7 @@ export const saveUpdatedChatSummary =
       try {
         // Save updated chats to secure store
         await saveToSecureStore("chatMessages", JSON.stringify(chats));
-        // console.log("Chats saved successfully!");
+        // //("Chats saved successfully!");
 
         // Dispatch updated summary
         dispatch(updateChatSummary({ summary, chatid, message }));
@@ -216,7 +218,7 @@ export const saveUpdatedChatSummary =
         console.error("Failed to save updated chats: ", error);
       }
     }
-    // console.log("Here 3 ", chats);
+    // //("Here 3 ", chats);
   };
 
 export const changeMessageStatus =
